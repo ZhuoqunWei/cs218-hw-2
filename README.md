@@ -16,18 +16,18 @@ python app.py
 ```bash
 sudo yum update -y
 sudo yum install python3 python3-pip git -y
-git clone <REPO_URL> && cd hw2-Zhuoqun-Wei
+git clone https://github.com/ZhuoqunWei/cs218-hw-2.git && cd cs218-hw-2
 pip3 install -r requirements.txt
 gunicorn -w 1 -b 0.0.0.0:5000 app:app --daemon
 ```
 
 Security Group: allow TCP **5000** and **22** inbound.
 
-## Verification (replace `<BASE_URL>`)
+## Verification
 
 ### Step 1 — Create an order (expect 201)
 ```bash
-curl -X POST <BASE_URL>/orders \
+curl -X POST http://3.95.177.219:5000/orders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: order-abc-123" \
   -d '{"customer_id":"cust-1","item_id":"item-42","quantity":2}'
@@ -35,7 +35,7 @@ curl -X POST <BASE_URL>/orders \
 
 ### Step 2 — Retry same key + payload (expect same 201 response)
 ```bash
-curl -X POST <BASE_URL>/orders \
+curl -X POST http://3.95.177.219:5000/orders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: order-abc-123" \
   -d '{"customer_id":"cust-1","item_id":"item-42","quantity":2}'
@@ -43,7 +43,7 @@ curl -X POST <BASE_URL>/orders \
 
 ### Step 3 — Same key, different payload (expect 409)
 ```bash
-curl -X POST <BASE_URL>/orders \
+curl -X POST http://3.95.177.219:5000/orders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: order-abc-123" \
   -d '{"customer_id":"cust-1","item_id":"item-99","quantity":5}'
@@ -51,7 +51,7 @@ curl -X POST <BASE_URL>/orders \
 
 ### Step 4 — Simulated failure after commit (expect 500)
 ```bash
-curl -X POST <BASE_URL>/orders \
+curl -X POST http://3.95.177.219:5000/orders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: order-fail-456" \
   -H "X-Debug-Fail-After-Commit: true" \
@@ -60,7 +60,7 @@ curl -X POST <BASE_URL>/orders \
 
 ### Step 5 — Retry after failure (expect 201 with same order)
 ```bash
-curl -X POST <BASE_URL>/orders \
+curl -X POST http://3.95.177.219:5000/orders \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: order-fail-456" \
   -d '{"customer_id":"cust-2","item_id":"item-7","quantity":1}'
@@ -68,5 +68,5 @@ curl -X POST <BASE_URL>/orders \
 
 ### Step 6 — GET order by ID (use order_id from step 1)
 ```bash
-curl <BASE_URL>/orders/<ORDER_ID>
+curl http://3.95.177.219:5000/orders/<ORDER_ID>
 ```
