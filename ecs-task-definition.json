@@ -1,0 +1,52 @@
+{
+  "family": "order-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::043254348860:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "043254348860.dkr.ecr.us-east-1.amazonaws.com/order-api:v7",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "DATABASE_HOST",  "value": "orderapidb.cw7eemmu635s.us-east-1.rds.amazonaws.com" },
+        { "name": "DATABASE_PORT",  "value": "5432" },
+        { "name": "DATABASE_USER",  "value": "orderuser" },
+        { "name": "DATABASE_NAME",  "value": "orderdb" },
+        { "name": "DATABASE_SSLMODE", "value": "require" }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_PASSWORD",
+          "valueFrom": "arn:aws:ssm:us-east-1:043254348860:parameter/order-api.db-password"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/order-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\" || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
