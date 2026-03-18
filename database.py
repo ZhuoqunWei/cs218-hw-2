@@ -1,49 +1,28 @@
-import sqlite3
 import os
+import psycopg2
+import psycopg2.extras
 
-DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "orders.db")
+
+def _dsn():
+    return (
+        f"host={os.environ['DATABASE_HOST']} "
+        f"port={os.environ.get('DATABASE_PORT', '5432')} "
+        f"user={os.environ['DATABASE_USER']} "
+        f"password={os.environ['DATABASE_PASSWORD']} "
+        f"dbname={os.environ['DATABASE_NAME']} "
+        f"sslmode={os.environ.get('DATABASE_SSLMODE', 'prefer')}"
+    )
 
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
+    conn = psycopg2.connect(_dsn(), cursor_factory=psycopg2.extras.RealDictCursor)
     return conn
 
 
-def init_db():
-    conn = get_db()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS orders (
-            order_id    TEXT PRIMARY KEY,
-            customer_id TEXT NOT NULL,
-            item_id     TEXT NOT NULL,
-            quantity    INTEGER NOT NULL,
-            status      TEXT NOT NULL DEFAULT 'created',
-            created_at  TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS ledger (
-            ledger_id   TEXT PRIMARY KEY,
-            order_id    TEXT NOT NULL,
-            customer_id TEXT NOT NULL,
-            amount      INTEGER NOT NULL,
-            created_at  TEXT NOT NULL,
-            FOREIGN KEY (order_id) REFERENCES orders(order_id)
-        );
-
-        CREATE TABLE IF NOT EXISTS idempotency_records (
-            idempotency_key TEXT PRIMARY KEY,
-            request_hash    TEXT NOT NULL,
-            response_body   TEXT NOT NULL,
-            status_code     INTEGER NOT NULL,
-            created_at      TEXT NOT NULL
-        );
-    """)
-    conn.close()
-
-
-if __name__ == "__main__":
-    init_db()
-    print("Database initialized.")
+def check_db():
+    try:
+        conn = get_db()
+        conn.close()
+        return True
+    except Exception:
+        return False
